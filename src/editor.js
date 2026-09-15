@@ -12,6 +12,7 @@ import {
   util,
 } from "fabric";
 import WebFont from "webfontloader";
+import { readAutosave, scheduleAutosave } from "./localFiles";
 import { useStudio, notify } from "./store";
 export const accent = "#FBFF00";
 export const selectionStyle = {
@@ -129,6 +130,7 @@ export function changed(label = "Edit design") {
     });
   }
   sync();
+  scheduleAutosave(snapshot());
 }
 export function transaction(label, operation) {
   if (busy) return;
@@ -148,6 +150,7 @@ export async function jumpTo(index) {
   cursor = index;
   useStudio.setState({ dirty: true, saveStatus: "Unsaved changes" });
   sync();
+  scheduleAutosave(snapshot());
 }
 const text = (value, left, top, size, opts = {}) =>
   new Textbox(value, {
@@ -364,11 +367,24 @@ export function initialize(element) {
     );
     await document.fonts.ready;
     if (!alive) return;
-    seed();
+    const recovery = readAutosave();
+    if (recovery) {
+      try {
+        await loadDocument(recovery, false);
+      } catch {
+        seed();
+        notify(
+          "The recovery draft could not be opened. Import a saved JSON draft.",
+        );
+      }
+    } else seed();
+    if (!alive) return;
     useStudio.setState({
       ready: true,
       dirty: false,
-      saveStatus: "Ready · save as draft",
+      saveStatus: recovery
+        ? "Recovered on this device"
+        : "Ready · local autosave",
     });
     sync();
     window.dispatchEvent(new Event("studio-fit"));
@@ -560,8 +576,8 @@ export function validateDocument(doc) {
     doc.version !== 1 ||
     !Number.isFinite(doc.width) ||
     !Number.isFinite(doc.height) ||
-    doc.width < 100 ||
-    doc.height < 100 ||
+    doc.width < 1 ||
+    doc.height < 1 ||
     doc.width > 8192 ||
     doc.height > 8192 ||
     !Array.isArray(doc.canvas?.objects) ||
@@ -635,6 +651,12 @@ export function exportFile(format, scale = 1) {
   const c = canvas();
   if (!c) return;
   try {
+    if (format === "psd") {
+      void import("./psd")
+        .then((m) => m.downloadPsd())
+        .catch((error) => notify(error.message));
+      return;
+    }
     if (format === "json") {
       download(
         new Blob([JSON.stringify(snapshot())], { type: "application/json" }),
@@ -701,6 +723,11 @@ export async function importFiles(files, point) {
     try {
       if (file.size > 20 * 1024 * 1024)
         throw Error("Please choose a file under 20 MB.");
+      if (/\.psd$/i.test(file.name)) {
+        const { importPsd } = await import("./psd");
+        await importPsd(file);
+        continue;
+      }
       if (file.name.endsWith(".json")) {
         await loadDocument(JSON.parse(await file.text()));
         notify("Draft opened");

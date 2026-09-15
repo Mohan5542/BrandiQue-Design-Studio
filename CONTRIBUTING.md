@@ -1,6 +1,6 @@
 # Contributing
 
-Keep BrandiQue entirely client-side and free of account requirements, paid services, telemetry, and document databases. Use existing Fabric commands and Zustand state for new controls.
+Keep BrandiQue entirely client-side and free of account requirements, paid services, telemetry, and document databases. LocalStorage recovery is permitted; preserve quota handling and downloadable backups. Use existing Fabric commands and Zustand state for new controls.
 
 1. Install with `npm ci` using Node 22 or later.
 2. Make focused changes, preserving import/export compatibility.

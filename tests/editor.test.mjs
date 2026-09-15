@@ -5,18 +5,32 @@ import { createCanvas } from "canvas";
 
 // Run the same browser command modules against Fabric's Node canvas adapter.
 await fs.mkdir(".sites-runtime/tests", { recursive: true });
-const editorSource = (await fs.readFile("src/editor.js", "utf8"))
-  .replace("from 'fabric'", "from 'fabric/node'")
-  .replace('from "fabric"', 'from "fabric/node"')
-  .replace(/import WebFont from ['"]webfontloader['"];?/, "const WebFont = {};")
-  .replace(/from ['"]\.\/store['"]/, 'from "../../src/store.js"');
-const advancedSource = (await fs.readFile("src/advanced.js", "utf8"))
-  .replace("from 'fabric'", "from 'fabric/node'")
-  .replace('from "fabric"', 'from "fabric/node"')
-  .replace(/from ['"]\.\/store['"]/, 'from "../../src/store.js"')
-  .replace(/from ['"]\.\/editor['"]/, 'from "./editor.mjs"');
-await fs.writeFile(".sites-runtime/tests/editor.mjs", editorSource);
-await fs.writeFile(".sites-runtime/tests/advanced.mjs", advancedSource);
+for (const module of [
+  "editor",
+  "advanced",
+  "localFiles",
+  "pixelTools",
+  "psd",
+]) {
+  const source = (await fs.readFile("src/" + module + ".js", "utf8"))
+    .replace(/from ['"]fabric['"]/, 'from "fabric/node"')
+    .replace(
+      /import WebFont from ['"]webfontloader['"];?/,
+      "const WebFont = {};",
+    )
+    .replace(/from ['"]\.\/store['"]/, 'from "../../src/store.js"')
+    .replace(
+      /from ['"]\.\/(editor|advanced|localFiles|pixelTools)['"]/g,
+      (_, name) => 'from "./' + name + '.mjs"',
+    );
+  await fs.writeFile(".sites-runtime/tests/" + module + ".mjs", source);
+}
+const memory = new Map();
+globalThis.localStorage = {
+  getItem: (k) => memory.get(k) || null,
+  setItem: (k, v) => memory.set(k, v),
+  removeItem: (k) => memory.delete(k),
+};
 globalThis.window = new EventTarget();
 const { useStudio } = await import("../src/store.js");
 const e = await import("../.sites-runtime/tests/editor.mjs");
@@ -99,6 +113,73 @@ assert.throws(() =>
       objects: [{ type: "Image", src: "https://example.com/image.png" }],
     },
   }),
+);
+// Pixel tools: real source alpha edits, selection bounds, and undo.
+const p = await import("../.sites-runtime/tests/pixelTools.mjs");
+const local = await import("../.sites-runtime/tests/localFiles.mjs");
+const source = createCanvas(128, 128);
+source.getContext("2d").fillStyle = "#ff0000";
+source.getContext("2d").fillRect(0, 0, 128, 128);
+const raster = new FabricImage(source, {
+  left: 0,
+  top: 0,
+  originX: "left",
+  originY: "top",
+  name: "Pixel test",
+  id: crypto.randomUUID(),
+});
+c.clear();
+c.add(raster);
+c.setActiveObject(raster);
+e.changed("Pixel fixture");
+c.getScenePoint = (event) => ({ x: event.clientX, y: event.clientY });
+const detach = p.attachPixelEvents(c);
+a.configureBrush({ brushSize: 20, brushOpacity: 100 });
+p.activatePixelTool("eraser");
+c.fire("mouse:down", { e: { clientX: 64, clientY: 64 } });
+c.fire("mouse:up", {});
+assert.equal(
+  raster.getElement().getContext("2d").getImageData(64, 64, 1, 1).data[3],
+  0,
+);
+assert.equal(
+  raster.getElement().getContext("2d").getImageData(2, 2, 1, 1).data[3],
+  255,
+);
+const fillPixels = new Uint8ClampedArray([
+  255, 0, 0, 255, 255, 0, 0, 255, 0, 0, 255, 255,
+]);
+assert.equal(p.floodFill(fillPixels, 3, 1, 0, 0, [0, 255, 0, 255], 0), 2);
+assert.equal(fillPixels[9], 0);
+local.writeAutosave(e.snapshot());
+assert.equal(local.readAutosave().canvas.objects.length, 1);
+assert.throws(() => local.writeAutosave({ payload: "x".repeat(2_000_001) }));
+const saved = local.readAutosave();
+assert.ok(saved.canvas);
+assert.throws(() =>
+  local.writeAutosave(e.snapshot(), {
+    setItem() {
+      throw Error("Quota exceeded");
+    },
+  }),
+);
+assert.deepEqual(local.readAutosave(), saved);
+detach();
+// Basic layered PSD export/import round-trip using the real parser.
+const ag = await import("ag-psd");
+ag.initializeCanvas((w, h) => createCanvas(w, h));
+const psd = await import("../.sites-runtime/tests/psd.mjs");
+useStudio.setState({ width: 128, height: 128 });
+c.setDimensions({ width: 128, height: 128 });
+const buffer = psd.buildPsd();
+const parsed = ag.readPsd(buffer);
+assert.equal(parsed.width, 128);
+assert.ok(parsed.children.length >= 1);
+await psd.importPsd({ name: "roundtrip.psd", arrayBuffer: async () => buffer });
+assert.equal(useStudio.getState().width, 128);
+assert.ok(c.getObjects().length >= 1);
+console.log(
+  "PASS: pixel erasing, fill boundaries, autosave restore/quota protection, and layered raster PSD round-trip.",
 );
 await c.dispose();
 console.log(

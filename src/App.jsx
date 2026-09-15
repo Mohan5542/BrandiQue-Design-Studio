@@ -47,6 +47,9 @@ import {
 } from "lucide-react";
 import { useStudio, notify, presets } from "./store";
 import * as editor from "./editor";
+import { PixelPanel, ProjectsPanel, StudioMenus } from "./StudioExtras";
+import * as pixels from "./pixelTools";
+import { Eraser, HardDrive } from "lucide-react";
 import * as advanced from "./advanced";
 import Inspector, { BrushPanel, ImageAdjustments } from "./Inspector";
 import {
@@ -88,6 +91,7 @@ function Workspace() {
     host.current.appendChild(root);
     const session = editor.initialize(el);
     const detachAdvanced = advanced.attachEvents(session.c, wrap.current);
+    const detachPixels = pixels.attachPixelEvents(session.c);
     let frame;
     const fit = () => {
       if (!wrap.current || useStudio.getState().canvas !== session.c) return;
@@ -124,6 +128,7 @@ function Workspace() {
       ro.disconnect();
       window.removeEventListener("studio-fit", schedule);
       detachAdvanced();
+      detachPixels();
       session.dispose();
       root.remove();
     };
@@ -256,17 +261,21 @@ function Library({ onImport, onTemplate }) {
     <aside className="library-panel">
       <div className="panel-heading">
         <h2>
-          {tab === "brush"
-            ? "Brush studio"
-            : tab === "adjustments"
-              ? "Image lab"
-              : tab === "templates"
-                ? "Your next great idea."
-                : tab === "text"
-                  ? "Say it your way."
-                  : tab === "shapes"
-                    ? "Build something bold."
-                    : "Make it yours."}
+          {tab === "pixels"
+            ? "Pixel workshop"
+            : tab === "projects"
+              ? "On this device"
+              : tab === "brush"
+                ? "Brush studio"
+                : tab === "adjustments"
+                  ? "Image lab"
+                  : tab === "templates"
+                    ? "Your next great idea."
+                    : tab === "text"
+                      ? "Say it your way."
+                      : tab === "shapes"
+                        ? "Build something bold."
+                        : "Make it yours."}
         </h2>
         <span className="panel-eyebrow">
           {tab === "templates"
@@ -278,7 +287,11 @@ function Library({ onImport, onTemplate }) {
                 : "YOUR FILES. YOUR CREATIVE SPACE."}
         </span>
       </div>
-      {tab === "brush" ? (
+      {tab === "pixels" ? (
+        <PixelPanel />
+      ) : tab === "projects" ? (
+        <ProjectsPanel />
+      ) : tab === "brush" ? (
         <BrushPanel />
       ) : tab === "adjustments" ? (
         <div className="tools-content advanced-tools">
@@ -424,8 +437,8 @@ function Library({ onImport, onTemplate }) {
           <div className="tip-card">
             <LockKeyhole size={19} />
             <p>
-              No account or database. Download an editable draft before closing
-              your tab.
+              No sign-in. Small designs autosave on this device. Download drafts
+              to keep portable backups.
             </p>
           </div>
         </div>
@@ -501,6 +514,29 @@ export default function App() {
     [menu, setMenu] = useState(false),
     [updateReady, setUpdateReady] = useState(false);
   const onImport = () => input.current.click();
+  const previousTab = useRef(s.tab);
+  useEffect(() => {
+    if (previousTab.current !== s.tab) {
+      setLeft(true);
+      previousTab.current = s.tab;
+    }
+  }, [s.tab]);
+  useEffect(() => {
+    const paste = (ev) => {
+      if (
+        ["INPUT", "TEXTAREA"].includes(ev.target.tagName) ||
+        ev.target.isContentEditable
+      )
+        return;
+      const files = [...(ev.clipboardData?.files || [])];
+      if (files.length) {
+        ev.preventDefault();
+        editor.importFiles(files);
+      }
+    };
+    window.addEventListener("paste", paste);
+    return () => window.removeEventListener("paste", paste);
+  }, []);
   const askReplace = (id) => {
     setPending(id);
     setModal("replace");
@@ -528,10 +564,25 @@ export default function App() {
       } else if (command && e.key.toLowerCase() === "g") {
         e.preventDefault();
         editor.groupSelection();
+      } else if (!command && e.key.toLowerCase() === "e") {
+        pixels.activatePixelTool("eraser");
+      } else if (!command && e.key.toLowerCase() === "s") {
+        pixels.activatePixelTool("clone");
+      } else if (!command && e.key.toLowerCase() === "g") {
+        pixels.activatePixelTool("fill");
+      } else if (!command && e.key.toLowerCase() === "m") {
+        pixels.activatePixelTool("marquee");
       } else if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
-        editor.removeSelected();
+        if (
+          useStudio.getState().pixelSelection &&
+          pixels.pixelModes.includes(useStudio.getState().tool)
+        )
+          pixels.clearPixels();
+        else editor.removeSelected();
       } else if (e.key === "Escape") {
+        pixels.deselectPixels();
+        advanced.setTool("select");
         s.canvas?.discardActiveObject();
         editor.sync();
       } else if (command && e.key.toLowerCase() === "a") {
@@ -559,7 +610,7 @@ export default function App() {
     window.addEventListener("keydown", onKey);
     const offline = () =>
       notify(
-        "Studio cached for offline use. Download drafts to save your designs.",
+        "Studio ready offline. Small designs autosave on this device; keep downloaded backups.",
       );
     window.addEventListener("offline-ready", offline);
     return () => {
@@ -634,7 +685,7 @@ export default function App() {
             bq<span>↗</span>
           </span>
           <span>
-            BrandiQue<span className="studio-word">STUDIO 2.0</span>
+            BrandiQue<span className="studio-word">STUDIO 3.0</span>
           </span>
         </a>
         <span className="header-divider" />
@@ -678,6 +729,7 @@ export default function App() {
             </>
           )}
         </div>
+        <StudioMenus />
         <div className="document-title">
           <input
             value={s.title}
@@ -701,10 +753,11 @@ export default function App() {
           </button>
           <a
             className="source-link"
-            href="/brandique-source.zip"
-            download
-            title="Download open-source code"
-            aria-label="Download open-source code"
+            href="https://github.com/Mohan5542/BrandiQue-Design-Studio"
+            target="_blank"
+            rel="noreferrer"
+            title="Open source on GitHub"
+            aria-label="Open source on GitHub"
           >
             <Github size={19} />
           </a>
@@ -763,6 +816,8 @@ export default function App() {
             ["shapes", Shapes, "Elements"],
             ["uploads", ImageIcon, "Uploads"],
             ["brush", Paintbrush, "Brush"],
+            ["pixels", Eraser, "Pixels"],
+            ["projects", HardDrive, "Projects"],
             ["adjustments", SlidersHorizontal, "Adjust"],
           ].map(([id, Icon, label]) => (
             <button
@@ -928,7 +983,7 @@ export default function App() {
         ref={input}
         type="file"
         multiple
-        accept="image/png,image/jpeg,image/webp,image/svg+xml,.json"
+        accept="image/png,image/jpeg,image/webp,image/svg+xml,.json,.psd"
         hidden
         onChange={(e) => {
           editor.importFiles([...e.target.files]);
@@ -985,6 +1040,9 @@ export default function App() {
               <option value="webp">
                 WebP — Smaller image with transparency
               </option>
+              <option value="psd">
+                PSD — Raster layers (limited compatibility)
+              </option>
               <option value="svg">SVG — Scalable vector</option>
               <option value="json">JSON — Editable BrandiQue draft</option>
             </select>
@@ -1007,6 +1065,14 @@ export default function App() {
                 </option>
               </select>
             </label>
+          )}
+          {format === "psd" && (
+            <p className="muted">
+              Exports rasterized layers. Use JSON to retain editable text,
+              vectors, and effects. PSD import supports 8-bit RGB raster
+              previews; smart objects, editable type, and advanced Photoshop
+              features are not preserved.
+            </p>
           )}
           {format === "svg" && (
             <p className="muted">
@@ -1069,6 +1135,10 @@ export default function App() {
           <div className="shortcut-list">
             {[
               ["Move tool", "V"],
+              ["Eraser", "E"],
+              ["Clone stamp", "S / Alt-click source"],
+              ["Fill", "G"],
+              ["Pixel selection", "M"],
               ["Brush tool", "B"],
               ["Hand tool", "H / Space"],
               ["Eyedropper", "I"],

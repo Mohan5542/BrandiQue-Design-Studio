@@ -2738,3 +2738,312 @@ p {
 .update-banner > span {
   color: #c6d4b3;
 }
+/* Studio 3: classic imaging menus and local pixel workflow. */
+.studio-menus {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+.studio-menu {
+  position: relative;
+}
+.studio-menu > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 7px;
+  font-size: 12px;
+  color: #c1c3c0;
+}
+.studio-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.studio-menu[open] > summary {
+  background: #3a3b3a;
+  border-radius: 3px;
+  color: #fbff00;
+}
+.studio-menu > div {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #2c2d2d;
+  border: 1px solid #515351;
+  border-radius: 5px;
+  min-width: 215px;
+  box-shadow: 0 16px 32px #0007;
+  z-index: 35;
+  padding: 5px;
+}
+.studio-menu > div button {
+  display: block;
+  text-align: left;
+  width: 100%;
+  padding: 10px;
+  font-size: 12px;
+  border-radius: 3px;
+}
+.studio-menu > div button:hover {
+  background: #40423d;
+}
+.topbar {
+  gap: 12px;
+  padding: 0 15px;
+}
+.topbar .brand {
+  font-size: 19px;
+}
+.topbar .document-title input {
+  width: 130px;
+}
+.topbar .brand .studio-word {
+  display: none;
+}
+.pixel-panel .full:first-child,
+.projects-panel .full:first-child {
+  margin-top: 0;
+}
+.pixel-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+  margin-top: 18px;
+}
+.pixel-tool-grid button {
+  border: 1px solid #464947;
+  border-radius: 5px;
+  background: #2d2f2e;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 9px;
+  font-size: 12px;
+  color: #bbc1b8;
+}
+.pixel-tool-grid .active {
+  border-color: #b9c146;
+  background: #3c4027;
+  color: #fbff00;
+}
+.pixel-tool-grid button:hover {
+  background: #3a3d35;
+}
+.pixel-target {
+  font-size: 11px;
+  color: #afbba1;
+  margin: 15px 0;
+  padding: 9px 0;
+  border-bottom: 1px solid #41483a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pixel-instructions {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #a2ae95;
+  padding: 13px 10px;
+  border: 1px solid #49543d;
+  border-radius: 5px;
+  margin-top: 16px;
+}
+.selection-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 16px;
+}
+.selection-actions strong {
+  font-size: 12px;
+  font-weight: 500;
+  color: #cad5bb;
+}
+.selection-actions button {
+  border: 1px solid #4e5c3e;
+  border-radius: 4px;
+  padding: 9px;
+  text-align: left;
+  font-size: 12px;
+  background: #303929;
+}
+.projects-panel {
+  padding-bottom: 25px;
+}
+.project-row {
+  display: flex;
+  gap: 10px;
+  padding: 15px 0;
+  border-bottom: 1px solid #434d39;
+  align-items: center;
+}
+.project-row > button:first-child {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.project-row strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.project-row span {
+  display: block;
+  font-size: 10px;
+  color: #96a783;
+  margin-top: 6px;
+}
+.project-row > button:last-child {
+  color: #859573;
+}
+.project-confirm {
+  padding: 15px 10px;
+  border: 1px solid #687b47;
+  background: #303b22;
+  border-radius: 6px;
+  margin-top: 17px;
+}
+.project-confirm p {
+  font-size: 12px;
+  line-height: 1.7;
+  margin-bottom: 10px;
+}
+.project-confirm button {
+  display: block;
+  width: 100%;
+  padding: 9px 4px;
+  text-align: left;
+  font-size: 12px;
+  color: #d2e8af;
+}
+.pixel-panel .pro-color-label {
+  margin-top: 17px;
+}
+.tool-rail {
+  gap: 4px;
+}
+.rail-tool {
+  min-height: 47px;
+}
+.rail-tool svg {
+  width: 19px;
+}
+.panel-eyebrow {
+  line-height: 1.5;
+}
+.pro-save-footer > span {
+  font-size: 11px;
+}
+.pro-inspector {
+  background: #262727;
+}
+.pro-section select,
+.pro-select,
+.number-field,
+.field-label select,
+.search-field,
+.layer-search input {
+  background: #303232;
+  border-color: #474949;
+}
+.pro-section {
+  border-color: #414343;
+}
+.workspace-guide {
+  background: #292d28;
+}
+.studio-menu summary:focus-visible {
+  outline: 2px solid #fbff00;
+}
+.save-status {
+  font-size: 11px;
+  max-width: 165px;
+}
+.topbar .document-title {
+  margin-left: auto;
+}
+@media (max-width: 1350px) {
+  .topbar .document-title {
+    display: none;
+  }
+  .studio-menus {
+    margin-left: 0;
+  }
+  .save-status {
+    display: none;
+  }
+  .header-actions {
+    gap: 10px;
+  }
+  .studio-menu > summary {
+    padding: 8px 6px;
+  }
+  .topbar .brand {
+    font-size: 18px;
+  }
+}
+@media (max-width: 1000px) {
+  .studio-menus {
+    position: absolute;
+    top: 62px;
+    left: 145px;
+    z-index: 12;
+    height: 40px;
+  }
+  .studio-menu > summary {
+    font-size: 11px;
+    padding: 7px 5px;
+  }
+  .breadcrumb {
+    visibility: hidden;
+  }
+  .subbar .edit-controls {
+    margin-left: auto;
+  }
+  .studio-menus .studio-menu:nth-child(n + 5) {
+    display: none;
+  }
+  .document-color-mode {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .studio-menus {
+    top: 60px;
+    left: 6px;
+  }
+  .studio-menus .studio-menu:nth-child(n + 4) {
+    display: none;
+  }
+  .tool-rail {
+    gap: 2px;
+  }
+  .rail-tool {
+    min-height: 43px;
+  }
+  .tool-rail > .icon-btn {
+    height: 25px;
+  }
+  .rail-tool span {
+    font-size: 9px;
+  }
+  .rail-foot {
+    display: none;
+  }
+  .pixel-tool-grid button {
+    font-size: 12px;
+  }
+  .topbar .brand {
+    font-size: 17px;
+  }
+  .topbar {
+    padding: 0 10px;
+  }
+  .pro-inspector {
+    top: 100px;
+  }
+  .library-panel {
+    top: 100px;
+  }
+}
